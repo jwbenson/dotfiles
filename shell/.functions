@@ -1,0 +1,71 @@
+
+# create a zip file for git changes since X commit or tag
+# $1 from tag or hash
+# $2 to tag or hash (optional, default HEAD)
+makepatch() {
+	local from=$1
+	local to="${2:-HEAD}"
+
+	if [[ -z $from ]]; then
+		echo "You need to specify a commit or tag to compare from."
+		return 1
+	fi
+
+	local currentname="$(pwd | xargs basename)"
+	local zipname="${currentname}-(${from}-${to}).zip"
+
+	echo ""
+	echo "making ${zipname}"
+	echo " -- $DOCUMENTS/${zipname}"
+	echo ""
+
+	git diff --name-only "${from}" "${to}" | zip "$DOCUMENTS/$zipname" -@
+}
+
+# Start a static HTTP server from a directory, optionally specifying the port
+# $1 port number (default 9001)
+staticserver() {
+	# Get port (if specified)
+	local port="${1:-9002}"
+
+	# open in a browser
+	sleep 1 && open "http://localhost:${port}/"
+
+	# if statichttpserver npm module doesn't exist, use python
+	if ! type "statichttpserver" > /dev/null; then
+
+		# Set the default Content-Type to `text/plain` instead of `application/octet-stream`
+		# And serve everything as UTF-8 (although not technically correct, this doesn’t break anything for binary files)
+		python -c $'import SimpleHTTPServer;\nmap = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map;\nmap[""] = "text/plain";\nfor key, value in map.items():\n\tmap[key] = value + ";charset=UTF-8";\nSimpleHTTPServer.test();' "$port"
+
+		return 0
+	fi
+
+	statichttpserver -p="${port}"
+}
+
+# squash changes in a branch via reset (pretty darn dangerous!)
+# $1 # of commits
+# $2 new commit message title (optional, omit to skip commit)
+# $3 new commit message body (optional, default '')
+resetandsquash() {
+	local commits=$1
+	local message=$2
+	local messageBody=$3
+
+	if [[ -z $commits ]]; then
+		echo "Number of commits is required"
+		return 1
+	fi
+
+	echo ""
+	echo "git reset --soft HEAD~${commits}"
+
+	git reset --soft "HEAD~${commits}"
+
+	if [[ -z $message ]]; then
+		return 0
+	fi
+
+	git commit -m "${message}" -m "${messageBody}"
+}

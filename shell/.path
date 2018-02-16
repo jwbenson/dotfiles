@@ -1,0 +1,10 @@
+
+export PATH="/usr/local/sbin:$PATH"
+export PATH="$HOME/.fastlane/bin:$PATH"
+export PATH="$HOME/Projects/go/:$PATH"
+
+export GOPATH=$HOME/Projects/jbenson/go
+export GOBIN=$HOME/Projects/jbenson/go/bin
+
+# Add Visual Studio Code (macOS)
+export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
