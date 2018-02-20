@@ -1,5 +1,4 @@
-
-# create a zip file for git changes since X commit or tag
+# create a zip file for changes since X commit or tag
 # $1 from tag or hash
 # $2 to tag or hash (optional, default HEAD)
 makepatch() {
@@ -22,26 +21,9 @@ makepatch() {
 	git diff --name-only "${from}" "${to}" | zip "$DOCUMENTS/$zipname" -@
 }
 
-# Start a static HTTP server from a directory, optionally specifying the port
-# $1 port number (default 9001)
-staticserver() {
-	# Get port (if specified)
-	local port="${1:-9002}"
-
-	# open in a browser
-	sleep 1 && open "http://localhost:${port}/"
-
-	# if statichttpserver npm module doesn't exist, use python
-	if ! type "statichttpserver" > /dev/null; then
-
-		# Set the default Content-Type to `text/plain` instead of `application/octet-stream`
-		# And serve everything as UTF-8 (although not technically correct, this doesn’t break anything for binary files)
-		python -c $'import SimpleHTTPServer;\nmap = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map;\nmap[""] = "text/plain";\nfor key, value in map.items():\n\tmap[key] = value + ";charset=UTF-8";\nSimpleHTTPServer.test();' "$port"
-
-		return 0
-	fi
-
-	statichttpserver -p="${port}"
+# reload dot files
+reloadDotfiles() {
+	source ~/.bash_profile
 }
 
 # squash changes in a branch via reset (pretty darn dangerous!)
@@ -68,4 +50,82 @@ resetandsquash() {
 	fi
 
 	git commit -m "${message}" -m "${messageBody}"
+}
+
+# Start a static HTTP server from a directory, optionally specifying the port
+# $1 port number (default 9001)
+staticserver() {
+	# Get port (if specified)
+	local port="${1:-9002}"
+
+	# open in a browser
+	sleep 1 && open "http://localhost:${port}/"
+
+	# if statichttpserver npm module doesn't exist, use python
+	if ! type "statichttpserver" > /dev/null; then
+
+		# Set the default Content-Type to `text/plain` instead of `application/octet-stream`
+		# And serve everything as UTF-8 (although not technically correct, this doesn’t break anything for binary files)
+		python -c $'import SimpleHTTPServer;\nmap = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map;\nmap[""] = "text/plain";\nfor key, value in map.items():\n\tmap[key] = value + ";charset=UTF-8";\nSimpleHTTPServer.test();' "$port"
+
+		return 0
+	fi
+
+	statichttpserver -p="${port}"
+
+}
+
+
+prompt_git() {
+    local s=""
+    local branchName=""
+
+    # check if the current directory is in a git repository
+    if [ $(git rev-parse --is-inside-work-tree &>/dev/null; printf "%s" $?) == 0 ]; then
+
+        # check if the current directory is in .git before running git checks
+        if [ "$(git rev-parse --is-inside-git-dir 2> /dev/null)" == "false" ]; then
+
+            # ensure index is up to date
+            git update-index --really-refresh  -q &>/dev/null
+
+            # check for uncommitted changes in the index
+            if ! $(git diff --quiet --ignore-submodules --cached); then
+                s="$s+";
+            fi
+
+            # check for unstaged changes
+            if ! $(git diff-files --quiet --ignore-submodules --); then
+                s="$s!";
+            fi
+
+            # check for untracked files
+            if [ -n "$(git ls-files --others --exclude-standard)" ]; then
+                s="$s?";
+            fi
+
+            # check for stashed files
+            if $(git rev-parse --verify refs/stash &>/dev/null); then
+                s="$s$";
+            fi
+
+        fi
+
+        # get the short symbolic ref
+        # if HEAD isn't a symbolic ref, get the short SHA
+        # otherwise, just give up
+        branchName="$(git symbolic-ref --quiet --short HEAD 2> /dev/null || \
+                      git rev-parse --short HEAD 2> /dev/null || \
+                      printf "(unknown)")"
+
+        [ -n "$s" ] && s=" [$s]"
+
+        printf "%s" "$1$branchName$s"
+    else
+        return
+    fi
+}
+
+la() {
+ ls -alf
 }
