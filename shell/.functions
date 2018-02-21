@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # create a zip file for changes since X commit or tag
 # $1 from tag or hash
 # $2 to tag or hash (optional, default HEAD)

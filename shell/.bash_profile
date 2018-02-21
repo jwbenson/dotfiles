@@ -1,3 +1,4 @@
+#!/bin/bash
 # Paths
 export PATH=/usr/local/bin:$PATH
 export DOCUMENTS="$HOME/Documents"
