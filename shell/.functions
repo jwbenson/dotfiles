@@ -27,7 +27,7 @@ makepatch() {
 fetchAuthKeys() {
         local gituser=jwbenson
 
-        if ! type "statichttpserver" > /dev/null; then
+        if ! type "wget" > /dev/null; then
                 echo "wtf... wget isn't installed"
                 return 1
         fi
