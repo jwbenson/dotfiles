@@ -23,8 +23,22 @@ makepatch() {
 	git diff --name-only "${from}" "${to}" | zip "$DOCUMENTS/$zipname" -@
 }
 
+# fetch keys from github
+fetchAuthKeys() {
+        local gituser=jwbenson
+
+        if ! type "statichttpserver" > /dev/null; then
+                echo "wtf... wget isn't installed"
+                return 1
+        fi
+
+        wget -O temp.keys "https://github.com/$gituser.keys" &&  \
+        cat temp.keys > ~/.ssh/authorized_keys && \
+        rm -f temp.keys
+}
+
 # reload dot files
-reloadDotfiles() {
+reloadDotFiles() {
 	source ~/.bash_profile
 }
 
