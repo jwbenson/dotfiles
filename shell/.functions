@@ -94,3 +94,50 @@ staticserver() {
 la() {
  ls -alf
 }
+
+awsmfa() {
+	###########################
+	# using a OTP password with AWS CLI can be kind of annoying
+	# store AWS_MFA_SERIAL in your bash profile and then call ./awsmfa.sh <otp> from your authenticator
+	#
+	# requires jq
+	#
+	# example 
+	#
+	# $ ./awsmfa.sh 867530
+	#
+	# AWS ACCESS KEY ID ASI ... 
+	# AWS EXPIRE 2021-03-03T06:30:40+00:00
+	#
+	###########################
+	OTP="$1"
+	AWSTOKEN="$AWS_MFA_SERIAL"
+
+
+	if [ -n "$2" ]
+	then
+		AWSTOKEN=$2
+	fi
+
+	if [ ! -n "$AWSTOKEN" ]
+	then
+		echo "$0 - Error AWSTOKEN (\$2 OR \$AWS_MFA_SERIAL) not set or NULL"
+		return 0
+	fi
+
+	if [ ! -n "$OTP" ]
+	then
+		echo "$0 - Error OTP (\$1) not set or NULL"
+		return 0
+	fi
+
+	OTPVALUES=$(aws sts get-session-token --serial-number $AWSTOKEN --token-code $OTP)
+
+	export AWS_ACCESS_KEY_ID=$( jq -r  '.Credentials.AccessKeyId' <<< "${OTPVALUES}")
+	export AWS_SECRET_ACCESS_KEY=$( jq -r  '.Credentials.SecretAccessKey' <<< "${OTPVALUES}")
+	export AWS_SESSION_TOKEN=$( jq -r  '.Credentials.SessionToken' <<< "${OTPVALUES}")
+	export AWS_SESSION_EXPIRATION=$( jq -r  '.Credentials.Expiration' <<< "${OTPVALUES}")
+
+	echo "AWS ACCESS KEY ID $AWS_ACCESS_KEY_ID"
+	echo "AWS EXPIRE $AWS_SESSION_EXPIRATION"
+}
