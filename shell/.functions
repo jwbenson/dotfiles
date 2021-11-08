@@ -2,7 +2,7 @@
 
 # reload dot files
 reloadDotFiles() {
-	source ~/.bash_profile
+	source ~/.zshrc
 }
 
 # create a zip file for changes since X commit or tag
@@ -63,10 +63,6 @@ staticserver() {
 
 	statichttpserver -p="${port}"
 
-}
-
-la() {
- ls -alf
 }
 
 awsmfa() {
