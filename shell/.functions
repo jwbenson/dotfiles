@@ -133,7 +133,7 @@ kubetail()
 appconfigs()
 {
 	ACTION=${ACTION:-list}
-	BUCKET=${school:-$AWS_DEFAULT_K8S_BUCKET}
+	BUCKET=${BUCKET:-$AWS_DEFAULT_K8S_BUCKET}
 	FILE=""
 	APPCONFIG_PATH="${HOME}/.sds/appconfigs/"
 	NOT=""
@@ -208,6 +208,8 @@ appconfigs()
 
 kubeconfigs()
 {
+	BUCKET=${BUCKET:-$AWS_DEFAULT_K8S_BUCKET}
+	ACTION=${ACTION:-list}
 	 # converts --action get --bucket something to local vars
 	while [ $# -gt 0 ]; do
 		if [[ $1 == *"--"* ]]; then
@@ -218,5 +220,5 @@ kubeconfigs()
 		shift
 	done
 
-	appconfigs --bucket $BUCKET --action $ACTION --file $FILE --not "yaml" --bucket $BUCKET 
+	appconfigs --not "yaml" --action $ACTION --bucket $BUCKET --file $FILE
 }
