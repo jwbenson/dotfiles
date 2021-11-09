@@ -112,48 +112,6 @@ awsmfa() {
 	echo "AWS EXPIRE $AWS_SESSION_EXPIRATION"
 }
 
-kubeconfigs()
-{
-	ACTION="$1"
-	CONFIG_FILE="$2"
-	BUCKET="$3"
-	KUBECONFIG_PATH="${HOME}/.sds/kubeconfig/"
-
-	mkdir -p $KUBECONFIG_PATH
-
-	if [ ! -n "$1" ]
-	then
-		ACTION="list"
-	fi
-
-	if [ ! -n "$BUCKET" ]
-	then
-		BUCKET=$AWS_DEFAULT_K8S_BUCKET
-	fi
-
-	case $ACTION in
-		get)
-			if [ ! -n "$CONFIG_FILE" ]
-			then
-				echo "Error: a config file name is required"
-				exit
-			fi
-			aws s3 cp $BUCKET ${KUBECONFIG_PATH} --recursive --exclude "*" --include "${CONFIG_FILE}"
-			export KUBECONFIG="${KUBECONFIG_PATH}${CONFIG_FILE}"
-			echo "using KUBECONFIG=$KUBECONFIG"
-			;;
-
-		*)
-			echo "Available kubeconfigs:"
-			echo ""
-			aws s3 ls $BUCKET --recursive | grep -v "yaml"
-			echo ""
-			echo ""
-			echo "exec kubeconfigs get {config name} to update KUBECONFIG"
-			;;
-	esac
-}
-
 kubetail()
 {
 	NAMESPACE="$1"
@@ -174,40 +132,41 @@ kubetail()
 
 appconfigs()
 {
-	ACTION="$1"
-	CONFIG_FILE="$2"
-	BUCKET="$3"
-	APPCONFIG_PATH="${HOME}/.sds/appconfig/"
+	ACTION=${ACTION:-list}
+	BUCKET=${school:-$AWS_DEFAULT_K8S_BUCKET}
+	FILE=""
+	APPCONFIG_PATH="${HOME}/.sds/appconfigs/"
+	NOT=""
 
-	mkdir -p $APPCONFIG_PATH
-
-	if [ ! -n "$1" ]
-	then
-		ACTION="list"
-	fi
-
-	if [ ! -n "$BUCKET" ]
-	then
-		BUCKET=$AWS_DEFAULT_K8S_BUCKET
-	fi
-
-	if [ ! -n "$CONFIG_FILE" ]
-	then
-		ACTION="list"
-	fi
+  # converts --action get --bucket something to local vars
+	while [ $# -gt 0 ]; do
+		if [[ $1 == *"--"* ]]; then
+					param="${1/--/}"
+					param=$(echo ${param} | tr '[a-z]' '[A-Z]')
+					declare ${param}="$2"
+		fi
+		shift
+	done
 
 	case $ACTION in
 		get)
-			aws s3 cp $BUCKET ${APPCONFIG_PATH} --recursive --exclude "*" --include "${CONFIG_FILE}"
+			aws s3 cp $BUCKET ${APPCONFIG_PATH} --recursive --exclude "*" --include "${FILE}"
 			echo ""
-			echo "downloaded ${APPCONFIG_PATH}${CONFIG_FILE}"
-			export APPCONFIG="${APPCONFIG_PATH}${CONFIG_FILE}"
+			echo "downloaded ${APPCONFIG_PATH}${FILE} from ${BUCKET}"
+			if [ "${FILE##*.}" = "yaml" ];
+			then
+				export APPCONFIG="${APPCONFIG_PATH}${FILE}"
+				echo "APPCONFIG is now ${APPCONFIG}"
+			else
+				export KUBECONFIG="${APPCONFIG_PATH}${FILE}"
+				echo "KUBECONFIG is now ${KUBECONFIG}"
+			fi
 			;;
 		edit)
 			code "${APPCONFIG_PATH}${CONFIG_FILE}"
 			;;
 		set)
-			echo "Copying ${CONFIG_FILE} to ${BUCKET}"
+			echo "Copying ${FILE} to ${BUCKET}"
 			echo ""
 			echo "Warning: this will overwrite application configuration!"
 			echo ""
@@ -218,19 +177,46 @@ appconfigs()
 				echo "copying"
 				cwd=$(pwd)
 				cd ${APPCONFIG_PATH}
-				aws s3 cp ${CONFIG_FILE} $BUCKET 
+				aws s3 cp ${FILE} $BUCKET 
 				cd $cwd
 			fi
 			;;
 		*)
-			echo "Available appconfigs:"
+			if [ -n "$NOT" ]
+			then
+				echo "Available kubernetes configurations:"
+				echo ""
+				echo "(${BUCKET})"
+				echo ""
+				aws s3 ls $BUCKET --recursive | grep -v $NOT
+			else
+				echo "Available app configurations:"
+				echo ""
+				echo "(${BUCKET})"
+				echo ""
+				aws s3 ls $BUCKET --recursive
+			fi
 			echo ""
-			aws s3 ls $BUCKET --recursive | grep "yaml"
 			echo ""
-			echo ""
-			echo "appconfigs get {config name} to download / overwrite a local configuration"
-			echo "appconfigs edit {config name} to edit a local configuration"
-			echo "appconfigs set {config name} to save / overwrite a remote configuration"
+			echo "options:"
+			echo "--bucket s3://bucket-name"
+			echo "--action get|edit|set"
+			echo "--file filename.yaml or environment_kubeconfig"
 			;;
 	esac
+}
+
+kubeconfigs()
+{
+	 # converts --action get --bucket something to local vars
+	while [ $# -gt 0 ]; do
+		if [[ $1 == *"--"* ]]; then
+					param="${1/--/}"
+					param=$(echo ${param} | tr '[a-z]' '[A-Z]')
+					declare ${param}="$2"
+		fi
+		shift
+	done
+
+	appconfigs --bucket $BUCKET --action $ACTION --file $FILE --not "yaml" --bucket $BUCKET 
 }
