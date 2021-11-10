@@ -170,8 +170,8 @@ appconfigs()
 			echo ""
 			echo "Warning: this will overwrite application configuration!"
 			echo ""
-			read "Are you sure? "
-			if [[ $REPLY =~ ^[Yy]$ ]]
+			read "REPLY?Are You Sure?"
+			if [[ "$REPLY" =~ ^[Yy]$ ]]
 			then
 				echo "copying"
 				cwd=$(pwd)
