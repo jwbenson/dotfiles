@@ -65,6 +65,7 @@ staticserver() {
 
 }
 
+
 awsmfa() {
 	###########################
 	# using a OTP password with AWS CLI can be kind of annoying
@@ -106,10 +107,63 @@ awsmfa() {
 	export AWS_SECRET_ACCESS_KEY=$( jq -r  '.Credentials.SecretAccessKey' <<< "${OTPVALUES}")
 	export AWS_SESSION_TOKEN=$( jq -r  '.Credentials.SessionToken' <<< "${OTPVALUES}")
 	export AWS_SESSION_EXPIRATION=$( jq -r  '.Credentials.Expiration' <<< "${OTPVALUES}")
+	export AWS_DEFAULT_REGION=$(aws configure get region)
 
 	echo "AWS TOKEN: $AWSTOKEN"
 	echo "AWS ACCESS KEY ID $AWS_ACCESS_KEY_ID"
 	echo "AWS EXPIRE $AWS_SESSION_EXPIRATION"
+	echo "AWS DEFAULT REGION $AWS_DEFAULT_REGION"
+
+	### update configs
+	create-sts-user
+}
+
+create-sts-user() 
+{
+	# backup current configuration
+	if [[ ! -d ~/.aws_bak ]] 
+	then
+		mkdir ~/.aws_bak
+	fi
+
+	cat ~/.aws/config > ~/.aws_bak/config
+	cat ~/.aws/credentials > ~/.aws_bak/credentials
+
+	# Insert sts-mfa-user into config
+	BEFORE_MFA_USER=$(grep -o -B 500 '^### MFAUSERBEGIN' .aws/config)
+	AFTER_MFA_USER=$(grep -o -A 500 '^### MFAUSEREND' .aws/config)
+	
+	if [ -z "$BEFORE_MFA_USER" ]
+	then
+		BEFORE_MFA_USER=$(cat ~/.aws/config)
+		BEFORE_MFA_USER="$BEFORE_MFA_USER\n### MFAUSERBEGIN"
+		AFTER_MFA_USER="### MFAUSEREND"
+	fi
+
+	echo $BEFORE_MFA_USER > ~/.aws/config
+	echo "[profile sts-mfa-user]" >> ~/.aws/config
+	echo "region = $AWS_DEFAULT_REGION" >> ~/.aws/config
+	echo $AFTER_MFA_USER >> ~/.aws/config
+
+	# insert sts-mfa-user into credentials
+	BEFORE_MFA_USER=$(grep -o -B 500 '^### MFAUSERBEGIN' .aws/credentials)
+	AFTER_MFA_USER=$(grep -o -A 500 '^### MFAUSEREND' .aws/credentials)
+	
+	if [ -z "$BEFORE_MFA_USER" ]
+	then
+		BEFORE_MFA_USER=$(cat ~/.aws/credentials)
+		BEFORE_MFA_USER="$BEFORE_MFA_USER\n### MFAUSERBEGIN"
+		AFTER_MFA_USER="### MFAUSEREND"
+	fi
+
+	echo $BEFORE_MFA_USER > ~/.aws/credentials
+	echo "[sts-mfa-user]" >> ~/.aws/credentials
+	echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
+	echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
+	echo $AFTER_MFA_USER >> ~/.aws/Credentials
+	
+	export AWS_PROFILE="sts-mfa-user"
+	aws configure list
 }
 
 kubetail()
