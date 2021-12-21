@@ -120,6 +120,12 @@ awsmfa() {
 
 create-sts-user() 
 {
+	if [ -z "$AWS_SESSION_TOKEN" ]
+	then
+		echo "invalid MFA session token!"
+		return 0;
+	fi
+
 	# backup current configuration
 	if [[ ! -d ~/.aws_bak ]] 
 	then
@@ -130,9 +136,9 @@ create-sts-user()
 	cat ~/.aws/credentials > ~/.aws_bak/credentials
 
 	# Insert sts-mfa-user into config
-	BEFORE_MFA_USER=$(grep -o -B 500 '^### MFAUSERBEGIN' .aws/config)
-	AFTER_MFA_USER=$(grep -o -A 500 '^### MFAUSEREND' .aws/config)
-	
+	BEFORE_MFA_USER=$(grep -o -B 500 '^### MFAUSERBEGIN' ~/.aws/config)
+	AFTER_MFA_USER=$(grep -o -A 500 '^### MFAUSEREND' ~/.aws/config)
+
 	if [ -z "$BEFORE_MFA_USER" ]
 	then
 		BEFORE_MFA_USER=$(cat ~/.aws/config)
@@ -146,8 +152,8 @@ create-sts-user()
 	echo $AFTER_MFA_USER >> ~/.aws/config
 
 	# insert sts-mfa-user into credentials
-	BEFORE_MFA_USER=$(grep -o -B 500 '^### MFAUSERBEGIN' .aws/credentials)
-	AFTER_MFA_USER=$(grep -o -A 500 '^### MFAUSEREND' .aws/credentials)
+	BEFORE_MFA_USER=$(grep -o -B 500 '^### MFAUSERBEGIN' ~/.aws/credentials)
+	AFTER_MFA_USER=$(grep -o -A 500 '^### MFAUSEREND' ~/.aws/credentials)
 	
 	if [ -z "$BEFORE_MFA_USER" ]
 	then
@@ -160,6 +166,7 @@ create-sts-user()
 	echo "[sts-mfa-user]" >> ~/.aws/credentials
 	echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
 	echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
+	echo "aws_session_token = $AWS_SESSION_TOKEN" >> ~/.aws/credentials
 	echo $AFTER_MFA_USER >> ~/.aws/Credentials
 	
 	export AWS_PROFILE="sts-mfa-user"
