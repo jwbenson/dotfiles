@@ -282,3 +282,36 @@ kubeconfigs()
 
 	appconfigs --not "yaml" --action $ACTION --bucket $BUCKET --file $FILE
 }
+
+ec2list () 
+{
+	aws ec2 describe-instances  \
+		--query "Reservations[*].Instances[*].{InstanceType:InstanceType,PrivateIP:PrivateIpAddress,PublicIP:PublicIpAddress,Platform:Platform,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name,CPU:CpuOptions.CoreCount,ThreadsPerCore:CpuOptions.ThreadsPerCore}" \
+		--filters "Name=instance-state-name,Values=running" \
+		--output table
+}
+
+ssmssh ()
+{	
+	if [[ -z $1 ]]; then
+		echo "Error missing parameter:"
+		echo "ssmssh <instance>"
+		echo ""
+		echo "Example:"
+		echo "ssmssh i-00000000FFFFFFFFF"
+		return 1
+	fi
+	aws ssm start-session --target $1
+}
+
+ssmforward ()
+{	if [[ -z $3 ]]; then
+		echo "Error missing parameter:"
+		echo "ssmssh <instance> <remote> <local>"
+		echo ""
+		echo "Example:"
+		echo "ssmssh i-00000000FFFFFFFFF 80 8080"
+		return 1
+	fi
+	aws ssm start-session --target $1 --document-name AWS-StartPortForwardingSession --parameters "portNumber"="$2","localPortNumber"="$3"
+}
