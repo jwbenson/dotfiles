@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # reload dot files
 reloadDotFiles() {
 	source ~/.zshrc

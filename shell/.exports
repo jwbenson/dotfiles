@@ -11,23 +11,13 @@ export AWS_DEFAULT_K8S_BUCKET=""
 export AWS_DEFAULT_K8S_NAMESPACE=""
 export AWS_DEFAULT_K8S_DEPLOYMENT=""
 
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '${DOWNLOADS}/google-cloud-sdk/path.bash.inc' ]; then source '${DOWNLOADS}//google-cloud-sdk/path.bash.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '${DOWNLOADS}/google-cloud-sdk/completion.bash.inc' ]; then source '${DOWNLOADS}//google-cloud-sdk/completion.bash.inc'; fi
-
-export ANDROID_HOME=~/Library/Android/sdk
-export ANDROID_SDK_ROOT=~/Library/Android/sdk
-export ANDROID_AVD_HOME=~/.android/avd
-
 #jvms
-export JAVA_7_HOME=$(/usr/libexec/java_home -v1.7)
-export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
-export JAVA_9_HOME=$(/usr/libexec/java_home -v9)
-export JAVA_11_HOME=$(/usr/libexec/java_home -v11)
+#export JAVA_7_HOME=$(/usr/libexec/java_home -v1.7)
+#export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
+#export JAVA_9_HOME=$(/usr/libexec/java_home -v9)
+#export JAVA_11_HOME=$(/usr/libexec/java_home -v11)
 
-alias java7='export JAVA_HOME=$JAVA_7_HOME'
-alias java8='export JAVA_HOME=$JAVA_8_HOME'
-alias java9='export JAVA_HOME=$JAVA_9_HOME'
-alias java11='export JAVA_HOME=$JAVA_11_HOME'
+#alias java7='export JAVA_HOME=$JAVA_7_HOME'
+#alias java8='export JAVA_HOME=$JAVA_8_HOME'
+#alias java9='export JAVA_HOME=$JAVA_9_HOME'
+#alias java11='export JAVA_HOME=$JAVA_11_HOME'
