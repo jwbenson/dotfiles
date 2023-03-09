@@ -313,3 +313,39 @@ ssmforward ()
 	fi
 	aws ssm start-session --target $1 --document-name AWS-StartPortForwardingSession --parameters "portNumber"="$2","localPortNumber"="$3"
 }
+
+
+dighost ()
+{
+	if (($EUID != 0)); then
+		echo "Please run as root (sudo zsh)"
+		return 1
+	fi
+
+	SOURCEHOST="$1"
+	DESTINATIONHOST="$2"
+	if [[ -z $DESTINATIONHOST ]]; then
+		echo "Error missing parameter:"
+		echo "dighost <source> <destination>"
+		echo ""
+		echo "Example:"
+		echo "dighost source.example.com destination.example.com"
+		return 1
+	fi
+
+	NEWIP=$(dig @8.8.8.8 "$SOURCEHOST" +short | grep '^[.0-9]*$' | tail -n 1)
+
+	HOST_LINE="$NEWIP $DESTINATIONHOST"
+
+	# Insert into /etc/hosts
+	OLDHOST=$(grep " $DESTINATIONHOST" /etc/hosts)
+
+	if [[ -z $OLDHOST ]]; then
+		echo "Adding $DESTINATIONHOST to /etc/hosts"
+		echo $HOST_LINE >> /etc/hosts
+	else
+		echo "Replacing $DESTINATIONHOST in /etc/hosts"
+		sed -i '' 's/'$OLDHOST'/'$NEWIP' '$DESTINATIONHOST'/' "/etc/hosts"
+	fi
+	echo $HOST_LINE
+}
