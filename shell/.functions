@@ -349,3 +349,91 @@ dighost ()
 	fi
 	echo $HOST_LINE
 }
+
+kill-k8s-jobs ()
+{	if [[ -z $2 ]]; then
+		echo "Error missing parameter:"
+		echo "kill-k8s-jobs <namespace> <job name>"
+		echo ""
+		echo "Example:"
+		echo "kill-k8s-jobs int requeue-tasks"
+		return 1
+	fi
+	kubectl get jobs -n $1 --no-headers -o name | grep $2 | xargs kubectl delete -n $1
+}
+
+pod-datetime ()
+{
+    if [[ -z $1 ]]; then
+        echo "Error missing parameter:"
+        echo "pod-datetime <namespace>"
+        echo ""
+        echo "Example:"
+        echo "pod-datetime int"
+        return 1
+    fi
+
+    # Get list of all pod names and remove 'pod/' prefix
+    kubectl get pods -o name -n $1 | sed 's/^pod\///' | while read pod; do
+        if [ ! -z "$pod" ]; then
+            echo "Time in $pod:"
+           kubectl exec -n $1 $pod -- date
+        fi
+    done
+}
+
+listening () 
+{
+	if [[ -z $1 ]]; then
+        echo "Error missing parameter:"
+        echo "listening <port>"
+        return 1
+    fi
+	lsof -i :$1
+}
+
+# finds an existing image in ECR and applies a new tag
+ecr-tag () {
+    local REPOSITORY="collab"
+    local SOURCE_TAG=$1
+    local DESTINATION_TAG=$2
+
+    if [ -z "$SOURCE_TAG" ] || [ -z "$DESTINATION_TAG" ]; then
+        echo "Error: Missing parameters"
+        echo "Usage: ecr-tag <source_tag> <destination_tag> [repository]"
+        return 1
+    fi
+
+    if [ -n "$3" ]; then
+        REPOSITORY="$3"
+    fi
+
+    if ! command -v aws &> /dev/null; then
+        echo "Error: AWS CLI is not installed or not in the PATH."
+        return 1
+    fi
+
+    local MANIFEST
+    MANIFEST=$(aws ecr batch-get-image --repository-name "$REPOSITORY" --image-ids imageTag="$SOURCE_TAG" --query 'images[].imageManifest' --output text)
+
+    if [ -z "$MANIFEST" ]; then
+        echo "Error: Tag $SOURCE_TAG not found in $REPOSITORY repository."
+        return 1
+    fi
+
+    echo "Are you sure you want to apply the tag '$DESTINATION_TAG' to '$SOURCE_TAG' in $REPOSITORY repository? (y/n)"
+    read -r answer
+
+    if [[ $answer =~ ^[Yy]$ ]]; then
+        echo "Applying '$DESTINATION_TAG' to '$SOURCE_TAG'..."
+        if aws ecr put-image --repository-name "$REPOSITORY" --image-tag "$DESTINATION_TAG" --image-manifest "$MANIFEST"; then
+            echo "Tag applied successfully."
+        else
+            echo "Error: Failed to apply tag."
+            return 1
+        fi
+    else
+        echo "Cancelled."
+        return 1
+    fi
+}
